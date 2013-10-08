@@ -1,5 +1,11 @@
 package main
 
+import (
+	"time"
+	"sort"
+)
+
+
 // A basic 'todo' item
 // note: the body of the item
 // created: time created, used for basic sorting
@@ -15,7 +21,7 @@ type item struct {
 func NewItem(s string) item {
 	return item{
 		note: s,
-		done: false
+		done: false,
 		created: time.Now(),
 		lu: time.Now(),
 	}
@@ -38,12 +44,12 @@ type byFunc func(i1, i2 *item) bool
 
 // Sorting function on created
 func byCreated(i1, i2 *item) bool {
-	return (i1.created < i2.created)
+	return i1.created.Before(i2.created)
 }
 
 // Sorting function on lu
 func byUpdated(i1, i2 *item) bool {
-	return (i1.lu < i2.lu)
+	return i1.lu.Before(i2.lu)
 }
 
 /////// Item list ///////////////////////////
@@ -52,9 +58,9 @@ type items []item
 
 // Good helper to order the list
 func (li items) Sort(by byFunc) {
-	sorter := itemSorter { 
-		i: li, 
-		by: by, 
+	sorter := &itemSorter {
+		i: li,
+		by: by,
 	}
 	sort.Sort(sorter)
 }
@@ -86,10 +92,11 @@ func (li items) Done() (ret items) {
 			ret.Add(e)
 		}
 	}
+	return
 }
 
 func isDone(i item) bool {
-	return (e.done && (time.Since(d.lu) > (24*time.Hour)))
+	return (i.done && (time.Since(i.lu) > (24*time.Hour)))
 }
 
 /////// Sorter /////////////////////////////
@@ -110,6 +117,6 @@ func (s *itemSorter) Swap(j, k int) {
 	s.i[j], s.i[k] = s.i[k], s.i[j]
 }
 
-func (s *itemsSorter) Less(j, k int) bool {
-	return s.by(s.i[j], s.i[k])
+func (s *itemSorter) Less(j, k int) bool {
+	return s.by(&(s.i[j]), &(s.i[k]))
 }
