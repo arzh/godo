@@ -3,120 +3,155 @@ package main
 import (
 	"time"
 	"sort"
+	"errors"
+	"strings"
 )
 
 
-// A basic 'todo' item
-// note: the body of the item
-// created: time created, used for basic sorting
-// lu: last time updated, used for special sorting
-//		{User defined '-lu' and moving to the done list after a while (probably a day)}
-type item struct {
-	note string
-	done bool
-	created time.Time
-	lu time.Time
+// A basic 'todo' Item
+// Note: the body of the Item
+// Created: time created, used for basic sorting
+// Lu: last time updated, used for special sorting
+//		{User defined '-Lu' and moving to the Done list after a while (probably a day)}
+type Item struct {
+	Note string
+	Done bool
+	Created time.Time
+	Lu time.Time
 }
 
-func NewItem(s string) item {
-	return item{
-		note: s,
-		done: false,
-		created: time.Now(),
-		lu: time.Now(),
+func NewItem(s string) *Item {
+	return &Item{
+		Note: s,
+		Done: false,
+		Created: time.Now(),
+		Lu: time.Now(),
 	}
 }
 
-// Update the note
-func (i item) Update(s string) {
-	i.note = s
-	i.lu = time.Now()
+// Update the Note
+func (i *Item) Update(s string) {
+	i.Note = s
+	i.Lu = time.Now()
 }
 
-// Set done
-func (i item) Mark(d bool) {
-	i.done = d
-	i.lu = time.Now()
+// Set Done
+func (i *Item) Mark(d bool) {
+	i.Done = d
+	i.Lu = time.Now()
 }
 
-// item sort func-type
-type byFunc func(i1, i2 *item) bool
+// Item sort func-type
+type byFunc func(i1, i2 *Item) bool
 
-// Sorting function on created
-func byCreated(i1, i2 *item) bool {
-	return i1.created.Before(i2.created)
+// Sorting function on Created
+func byCreated(i1, i2 *Item) bool {
+	return i1.Created.Before(i2.Created)
 }
 
-// Sorting function on lu
-func byUpdated(i1, i2 *item) bool {
-	return i1.lu.Before(i2.lu)
+// Sorting function on Lu
+func byUpdated(i1, i2 *Item) bool {
+	return i1.Lu.Before(i2.Lu)
 }
 
 /////// Item list ///////////////////////////
 
-type items []item
+type Items []*Item
 
 // Good helper to order the list
-func (li items) Sort(by byFunc) {
-	sorter := &itemSorter {
-		i: li,
+func (li *Items) Sort(by byFunc) {
+	sorter := &ItemSorter {
+		i: *li,
 		by: by,
 	}
 	sort.Sort(sorter)
 }
 
-// A little cleaner for adding an item
-func (li items) Add(i item) {
-	li = append(li, i)
+// A little cleaner for adding an Item
+func (li *Items) Add(i *Item) {
+	*li = append(*li, i)
 }
 
-// Creates a list of all unmarked and recently marked items
-func (li items) Todo() (ret items) {
-	ret = make(items, 0)
-
-	for _, e := range li {
-		if !isDone(e) {
-			ret.Add(e)
+// Find helper 
+func (li *Items) Find(note string) (*Item, error) {
+	found := make([]int, 0)
+	for i, e := range *li {
+		if strings.HasPrefix(e.Note, note) {
+			found = append(found, i);
 		}
 	}
 
-	return
+	if len(found) > 1 {
+		return nil, errors.New("Found more than one")
+	} else if len(found) < 1 {
+		return nil, errors.New("Didn't find any")
+	} else {
+		it := (*li)[found[0]]
+		return it, nil
+	}
 }
 
-// Creates a lite of all marked items
-func (li items) Done() (ret items) {
-	ret = make(items, 0)
+// Helper functions to build a list based on the contents of the item
+type buildSwitch func(*Item) bool
+
+func buildList(li Items, swt buildSwitch) Items {
+	list := make(Items, 0)
 
 	for _, e := range li {
-		if isDone(e) {
-			ret.Add(e)
+		if swt(e) {
+			list.Add(e)
 		}
 	}
-	return
+
+	return list
 }
 
-func isDone(i item) bool {
-	return (i.done && (time.Since(i.lu) > (24*time.Hour)))
+// Creates a list of all unmarked and recently marked Items
+func (li *Items) Todo() Items {
+	return buildList(*li, isTodo)
 }
+
+func isTodo(i *Item) bool {
+	return !i.Done
+}
+
+// Creates a lite of all marked Items
+func (li *Items) Done() Items {
+	return buildList(*li, isDone)
+}
+
+func isDone(i *Item) bool {
+	return i.Done
+}
+
+
+func (li *Items) Arch() Items {
+	return buildList(*li, isArch)
+}
+
+func isArch(i *Item) bool {
+	return (i.Done && (time.Since(i.Lu) > (24*time.Hour)))
+}
+
 
 /////// Sorter /////////////////////////////
 
-// Sorter for a list of items
+// Sorter for a list of Items
 // implements 'Sort' interface
 // uses 'byCreated' or 'byUpdated' to sort
-type itemSorter struct {
-	i items
+type ItemSorter struct {
+	i Items
 	by byFunc
 }
 
-func (s *itemSorter) Len() int {
+func (s *ItemSorter) Len() int {
 	return len(s.i)
 }
 
-func (s *itemSorter) Swap(j, k int) {
+func (s *ItemSorter) Swap(j, k int) {
 	s.i[j], s.i[k] = s.i[k], s.i[j]
 }
 
-func (s *itemSorter) Less(j, k int) bool {
-	return s.by(&(s.i[j]), &(s.i[k]))
+func (s *ItemSorter) Less(j, k int) bool {
+	return s.by((s.i[j]), (s.i[k]))
 }
