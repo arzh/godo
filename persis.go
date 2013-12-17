@@ -2,13 +2,25 @@ package main
 
 import (
 	"os"
+	"osext"
 	"encoding/gob"
 	"io/ioutil"
 	"bytes"
 	"fmt"
 )
 
-const file = ".todo"
+var file string
+
+func init() {
+	dir, err := osext.ExecutableFolder()
+	if err != nil {
+		file = ".todo"
+	} else {
+		file = dir + "/.todo"	
+	}
+	
+}
+
 type ItemsMap map[string]*Items
 
 type persis struct {
