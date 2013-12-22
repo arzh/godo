@@ -5,8 +5,9 @@ import (
 	"sort"
 	"errors"
 	"strings"
-)
 
+	"fmt"
+)
 
 // A basic 'todo' Item
 // Note: the body of the Item
@@ -18,6 +19,45 @@ type Item struct {
 	Done bool
 	Created time.Time
 	Lu time.Time
+}
+
+// Quick pretty print. would still like a template though...
+func (i Item) Print() string {
+
+	mark := " "
+	note35 := ""
+	month := ""
+
+	if i.Done {
+		mark = "X"
+	}
+
+	//fmt.Println("item-s1: ", mark)
+
+	if len(i.Note) > 35 {
+		note35 = i.Note[:35]
+		//fmt.Println("item-s2: ", note35)
+
+	} else {
+		note35 = i.Note;
+		for i := 35-len(i.Note); i > 0; i-- {
+			note35 += " "
+		}
+		//fmt.Println("item-s3: ", note35)
+
+	} 
+	
+	_, m, date := i.Lu.Date()
+
+	month = m.String()
+
+	//fmt.Println("item-s4: ", month)
+
+	fms := fmt.Sprintf("[%s]\t%s\t%s %d", mark, note35, month[:3], date)
+
+	//fmt.Println("item-s5: ", fms)
+
+	return fms
 }
 
 func NewItem(s string) *Item {
@@ -112,7 +152,7 @@ func (li *Items) Todo() Items {
 }
 
 func isTodo(i *Item) bool {
-	return !i.Done
+	return !isArch(i)
 }
 
 // Creates a lite of all marked Items
@@ -124,13 +164,12 @@ func isDone(i *Item) bool {
 	return i.Done
 }
 
-
 func (li *Items) Arch() Items {
 	return buildList(*li, isArch)
 }
 
 func isArch(i *Item) bool {
-	return (i.Done && (time.Since(i.Lu) > (24*time.Hour)))
+	return (i.Done && (time.Since(i.Lu) > (1*time.Hour)))
 }
 
 

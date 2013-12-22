@@ -46,31 +46,29 @@ func main() {
 		note = args.Loosie(0)
 	}
 
-	fmt.Println("Mark Flag:", args.Flag("mark"))
+	//fmt.Println("Mark Flag:", args.Flag("mark"))
 
 	if args.Flag("mark") {
 		itm, err := list.Find(note)
 		if err != nil {
 			fmt.Println("Error Marking:", err.Error())
 		}
-		fmt.Println("Found item:", itm)
 		itm.Mark(true)
-		fmt.Println("Marked item:", itm)
-	} else {
+	} else if note != "" {
 		list.Add(NewItem(note))
 	}
 
+	var view Items
+	if args.Flag("show_all") {
+		view = *list
+	} else if args.Flag("show_done") {
+		view = list.Done()
+	} else {
+		view = list.Todo()
+	}
 
-	//app.Lists[app.CurList] = *list;
-
-	fmt.Println("List:", list)
-	//fmt.Println("CurList:", app.CurList, "Lists:", app.Lists)
-
-	view := list.Todo()
-	fmt.Println("View:", view)
-	//fmt.Println("Length", len(view))
 	for _, e := range view {
-		fmt.Println(e.Note)
+		fmt.Println(e.Print())
 	}
 
 	//fmt.Println("CurList:", app.CurList, "Lists:", app.Lists)
